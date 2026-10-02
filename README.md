@@ -2,6 +2,8 @@
 
 Draw your family's birthdays as growth rings in a cross-section of a tree.
 
+**Try it: [rkrogh.github.io/year-ring](https://rkrogh.github.io/year-ring/)**
+
 ![A wood-themed year ring with three people marked](docs/preview.jpg)
 
 ## The idea
@@ -16,7 +18,7 @@ A few details that follow from that:
 
 ## Running it
 
-No build step and no dependencies. Open `index.html` in a browser.
+No build step and no dependencies. Use the hosted page above, or open `index.html` in a browser.
 
 From WSL, either:
 
