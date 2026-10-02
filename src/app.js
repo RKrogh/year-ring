@@ -28,6 +28,7 @@
       showBirthRing: true,
       showSolstices: false,
       showEquinoxes: false,
+      showNewYear: false,
       people: [],
       selectedId: null,
     };
@@ -307,7 +308,7 @@
     });
   }
 
-  const TOGGLES = ['showMonths', 'showYears', 'showToday', 'showBirthRing', 'showSolstices', 'showEquinoxes'];
+  const TOGGLES = ['showMonths', 'showYears', 'showToday', 'showBirthRing', 'showSolstices', 'showEquinoxes', 'showNewYear'];
 
   function bindToggle(id) {
     const input = $(id);

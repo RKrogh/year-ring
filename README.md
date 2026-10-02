@@ -15,7 +15,7 @@ A few details that follow from that:
 - **Time is one continuous spiral.** Inside a ring, the date also sets the distance from the centre: January 1 is the ring's outer boundary, December 31 its inner one. Selecting a person draws their life as that spiral, from birth to today.
 - **Ring spacing is configurable.** Logarithmic (the default) gives recent years more room, so a five-year-old's rings are still readable next to a great-grandparent's. Linear spaces every year equally. Equal area makes outer rings thinner, the way a real tree grows.
 - **12 o'clock is configurable.** By default the year turns between 31 December and 1 January, but it can start on the winter solstice (as many older calendars did), an equinox, midsummer or any `MM-DD`. The clock rotates and each ring then runs from one start to the next; a ring is named after the calendar year holding most of it.
-- **Solstices and equinoxes** can be drawn as lines across the ring. They use fixed dates (21 June, 21 December, 20 March, 22 September); the astronomical ones drift by a day or so.
+- **Solstices, equinoxes and New Year** can be drawn as lines across the ring. The New Year line marks where the Gregorian year turns, which is useful once 12 o'clock is something else. The seasons use fixed dates (21 June, 21 December, 20 March, 22 September); the astronomical ones drift by a day or so.
 - **The centre year is configurable.** Set it to an earlier year to see the family as it was then; anyone born later is listed but not drawn.
 
 ## Running it

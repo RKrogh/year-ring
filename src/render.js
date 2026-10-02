@@ -130,20 +130,25 @@
     { name: 'Autumn equinox', month: 8, day: 22 },
   ];
 
-  // Lines from the centre to the rim on the solstices and/or equinoxes,
+  // The calendar year turns between 31 December and 1 January: fraction 0 exactly.
+  const NEW_YEAR = { name: 'New Year', title: 'Gregorian New Year: 1 Jan', fraction: 0, dash: '2 4' };
+
+  // Lines from the centre to the rim on the solstices, equinoxes and/or New Year,
   // labelled just inside the bark and running along the line.
   function renderSeasons(state, theme, shape) {
     const marks = [
       ...(state.showSolstices ? SOLSTICES.map((m) => ({ ...m, strong: true })) : []),
-      ...(state.showEquinoxes ? EQUINOXES.map((m) => ({ ...m, strong: false })) : []),
+      ...(state.showEquinoxes ? EQUINOXES.map((m) => ({ ...m, strong: false, dash: '7 5' })) : []),
+      ...(state.showNewYear ? [NEW_YEAR] : []),
     ];
     if (!marks.length) return '';
     const start = startOf(state);
     const out = [];
     for (const mark of marks) {
-      const a = G.timeAngle(G.yearFraction({ year: 2001, month: mark.month, day: mark.day }), start);
+      const fraction = mark.fraction ?? G.yearFraction({ year: 2001, month: mark.month, day: mark.day });
+      const a = G.timeAngle(fraction, start);
       const end = shape.point(state.maxRings, a);
-      const dash = mark.strong ? '' : ' stroke-dasharray="7 5"';
+      const dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : '';
       out.push(`<line x1="${C}" y1="${C}" x2="${f1(end.x)}" y2="${f1(end.y)}" stroke="${theme.halo}" stroke-width="4" stroke-opacity="0.3"/>`);
       out.push(`<line x1="${C}" y1="${C}" x2="${f1(end.x)}" y2="${f1(end.y)}" stroke="${theme.season}" stroke-width="${mark.strong ? 1.8 : 1.3}"${dash}/>`);
       // Text runs outward along the line; on the left half it is flipped to stay upright.
@@ -151,7 +156,7 @@
       const deg = (a * 180) / Math.PI;
       const left = deg > 180;
       const rot = left ? deg + 90 : deg - 90;
-      out.push(`<text x="${f1(p.x)}" y="${f1(p.y)}" transform="rotate(${f1(rot)} ${f1(p.x)} ${f1(p.y)})" text-anchor="${left ? 'start' : 'end'}" dy="-5" class="season" fill="${theme.season}" stroke="${theme.halo}"><title>${mark.name}: ${mark.day} ${MONTHS[mark.month]}</title>${mark.name}</text>`);
+      out.push(`<text x="${f1(p.x)}" y="${f1(p.y)}" transform="rotate(${f1(rot)} ${f1(p.x)} ${f1(p.y)})" text-anchor="${left ? 'start' : 'end'}" dy="-5" class="season" fill="${theme.season}" stroke="${theme.halo}"><title>${mark.title || `${mark.name}: ${mark.day} ${MONTHS[mark.month]}`}</title>${mark.name}</text>`);
     }
     return `<g class="seasons">${out.join('')}</g>`;
   }
