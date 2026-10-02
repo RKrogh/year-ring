@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Year Ring</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="panel">
+    <header>
+      <h1>Year Ring</h1>
+      <p class="lede">Each year is a ring, the newest at the centre. January runs from 12 to 1 o'clock.</p>
+    </header>
+
+    <section>
+      <h2>People</h2>
+      <ul id="people" class="people"></ul>
+      <button id="add-person" type="button" class="wide">+ Add person</button>
+    </section>
+
+    <section>
+      <h2>Rings</h2>
+      <label class="row">Rings <output id="maxRings-out"></output>
+        <input id="maxRings" type="range" min="10" max="150" step="1">
+      </label>
+      <label class="row">Scale
+        <select id="scale">
+          <option value="log">Logarithmic (recent years wider)</option>
+          <option value="linear">Linear</option>
+          <option value="area">Equal area (like real wood)</option>
+        </select>
+      </label>
+      <label class="row" id="strength-row">Log strength <output id="strength-out"></output>
+        <input id="strength" type="range" min="0.01" max="2" step="0.01">
+      </label>
+      <label class="row">Centre year
+        <input id="referenceYear" type="number" min="1" max="9999" step="1">
+      </label>
+    </section>
+
+    <section>
+      <h2>Look</h2>
+      <label class="row">Title
+        <input id="title" type="text" placeholder="Optional heading">
+      </label>
+      <label class="row">Theme
+        <select id="theme">
+          <option value="wood">Wood</option>
+          <option value="night">Night</option>
+          <option value="paper">Paper</option>
+        </select>
+      </label>
+      <label class="row">Wobble <output id="wobble-out"></output>
+        <input id="wobble" type="range" min="0" max="0.12" step="0.005">
+      </label>
+      <button id="reseed" type="button" class="wide">Grow a new grain</button>
+      <div class="toggles">
+        <label><input id="showMonths" type="checkbox"> Months</label>
+        <label><input id="showYears" type="checkbox"> Year labels</label>
+        <label><input id="showToday" type="checkbox"> Today</label>
+        <label><input id="showBirthRing" type="checkbox"> Birth rings</label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Save &amp; share</h2>
+      <div class="buttons">
+        <button id="export-png" type="button">PNG</button>
+        <button id="export-svg" type="button">SVG</button>
+        <button id="export-json" type="button">Save JSON</button>
+        <button id="import-json" type="button">Load JSON</button>
+        <button id="share" type="button">Copy link</button>
+        <button id="reset" type="button" class="danger">Reset</button>
+      </div>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </aside>
+
+  <main class="stage">
+    <div id="ring" class="ring" aria-label="Year ring diagram"></div>
+    <p class="hint">Click a person's line to trace their life spiral.</p>
+  </main>
+
+  <script src="src/geometry.js"></script>
+  <script src="src/render.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>

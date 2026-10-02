@@ -1,0 +1,11 @@
+{
+  "name": "year-ring",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Draw a family's birthdays as growth rings in a cross-section of a tree.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "python3 -m http.server 8080"
+  },
+  "license": "MIT"
+}
