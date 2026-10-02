@@ -85,7 +85,7 @@ h2 {
 .row > input, .row > select { grid-column: 1 / -1; }
 .row output { color: var(--muted); font-variant-numeric: tabular-nums; }
 
-input[type="text"], input[type="number"], input[type="date"], select {
+input[type="text"], input[type="number"], select {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--line);
@@ -149,7 +149,21 @@ button.danger { color: var(--danger); }
   cursor: pointer;
 }
 .person-row .name { grid-area: name; font-weight: 600; }
-.person-row .date { grid-area: date; }
+.person-row .date { grid-area: date; position: relative; display: flex; gap: 6px; }
+.person-row .date-text { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.person-row .pick { padding: 0 8px; line-height: 0; color: var(--muted); }
+/* Kept rendered (not display:none) so showPicker() can anchor to it. */
+.person-row .date-picker {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 .person-row .remove { grid-area: remove; padding: 0; height: 30px; color: var(--muted); }
 .person-row .info { grid-area: info; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 8px; }
 .person-row .info.warn { color: var(--danger); }

@@ -147,9 +147,17 @@
 
   // ---- People editor -------------------------------------------------------
 
+  // Inserts the dashes while typing digits: 19870516 -> 1987-05-16.
+  function autoDash(text) {
+    const digits = text.replace(/\D/g, '').slice(0, 8);
+    if (digits.length > 6) return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+    if (digits.length > 4) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return digits;
+  }
+
   function describe(person) {
     const date = G.parseDate(person.date);
-    if (!date) return { text: 'Enter a date', warn: true };
+    if (!date) return { text: person.date ? 'Use YYYY-MM-DD' : 'Enter a date (YYYY-MM-DD)', warn: true };
     const depth = G.dateDepth(date, state.referenceYear);
     if (depth < 0) return { text: `After ${state.referenceYear}, not drawn`, warn: true };
     if (depth > state.maxRings) return { text: `Beyond ${state.maxRings} rings, not drawn`, warn: true };
@@ -175,14 +183,18 @@
     li.innerHTML = `
       <input class="color" type="color" aria-label="Colour">
       <input class="name" type="text" placeholder="Name" aria-label="Name">
-      <input class="date" type="date" aria-label="Birth date" max="9999-12-31">
+      <div class="date">
+        <input class="date-text" type="text" inputmode="numeric" maxlength="10" placeholder="YYYY-MM-DD" aria-label="Birth date (YYYY-MM-DD)" autocomplete="off">
+        <button class="pick" type="button" aria-label="Pick a date" title="Pick a date"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3"/></svg></button>
+        <input class="date-picker" type="date" tabindex="-1" aria-hidden="true">
+      </div>
       <button class="remove" type="button" aria-label="Remove" title="Remove">✕</button>
       <div class="info"><span class="text"></span><label><input class="visible" type="checkbox"> show</label></div>`;
 
     const q = (sel) => li.querySelector(sel);
     q('.color').value = person.color;
     q('.name').value = person.name;
-    q('.date').value = person.date;
+    q('.date-text').value = person.date;
     q('.visible').checked = person.visible;
 
     const refreshInfo = () => {
@@ -199,7 +211,29 @@
       changed();
     });
     q('.name').addEventListener('input', (e) => { person.name = e.target.value; changed(); });
-    q('.date').addEventListener('input', (e) => { person.date = e.target.value; refreshInfo(); changed(); });
+    // The visible field is plain text so the format is always ISO; the native
+    // picker (whose display follows the browser locale) is only used as a popup.
+    const dateText = q('.date-text');
+    const picker = q('.date-picker');
+    const setDate = (value) => { person.date = value; refreshInfo(); changed(); };
+    dateText.addEventListener('input', (e) => {
+      if (e.inputType && e.inputType.startsWith('insert')) dateText.value = autoDash(dateText.value);
+      setDate(dateText.value.trim());
+    });
+    q('.pick').addEventListener('click', () => {
+      picker.value = G.parseDate(dateText.value) ? dateText.value : '';
+      try {
+        picker.showPicker();
+      } catch {
+        picker.focus();
+        picker.click();
+      }
+    });
+    picker.addEventListener('change', () => {
+      if (!picker.value) return;
+      dateText.value = picker.value;
+      setDate(picker.value);
+    });
     q('.visible').addEventListener('change', (e) => {
       person.visible = e.target.checked;
       li.classList.toggle('hidden', !person.visible);
