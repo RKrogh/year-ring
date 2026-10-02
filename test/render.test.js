@@ -44,6 +44,8 @@ test('season lines appear only when toggled', () => {
   for (const name of ['Summer solstice', 'Winter solstice', 'Spring equinox', 'Autumn equinox']) {
     assert.ok(svg.includes(name), name);
   }
+  assert.ok(!svg.includes('>New Year<'));
+  assert.ok(render({ ...base, showNewYear: true }).includes('>New Year<'));
 });
 
 test('year start changes placement but not ring numbers for mid-year dates', () => {
