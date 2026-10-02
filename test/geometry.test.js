@@ -70,3 +70,42 @@ test('toXY puts 3 o\'clock to the right and 6 o\'clock down', () => {
   const p6 = g.toXY(Math.PI, 10);
   assert.ok(Math.abs(p6.y - 10) < 1e-9);
 });
+
+test('year start defaults to January 1 and parses MM-DD', () => {
+  assert.equal(g.startFraction('01-01'), 0);
+  assert.equal(g.startFraction('bogus'), 0);
+  assert.equal(g.parseMonthDay('02-29'), null);
+  assert.deepEqual(g.parseMonthDay('12-21'), { month: 11, day: 21 });
+  assert.ok(Math.abs(g.startFraction('07-01') - 0.5) < 1e-12);
+});
+
+test('winter solstice start puts December 21 at 12 o\'clock', () => {
+  const s = g.startFraction('12-21');
+  const a = deg(g.dateAngle(g.parseDate('2020-12-21'), s));
+  assert.ok(a > 0 && a < 1.5, `angle ${a}`);
+  // January 1 is now about 11 days past 12 o'clock.
+  const jan = deg(g.dateAngle(g.parseDate('2021-01-01'), s));
+  assert.ok(jan > 10 && jan < 13, `jan angle ${jan}`);
+});
+
+test('a solstice-to-solstice ring is named after the year holding most of it', () => {
+  const s = g.startFraction('12-21');
+  const ref = 2026;
+  // 25 Dec 2025 already belongs to the 2026 ring (ring 0).
+  assert.equal(g.ringIndex(g.parseDate('2025-12-25'), ref, s), 0);
+  assert.equal(g.ringIndex(g.parseDate('2025-12-20'), ref, s), 1);
+  assert.equal(g.ringIndex(g.parseDate('1987-05-16'), ref, s), 39);
+  // The ring boundary sits exactly on the start.
+  const before = g.dateDepth(g.parseDate('2025-12-20'), ref, s);
+  const after = g.dateDepth(g.parseDate('2025-12-21'), ref, s);
+  assert.ok(before > 1 && after < 1);
+});
+
+test('depthTime inverts dateDepth for any start', () => {
+  for (const start of ['01-01', '03-20', '06-21', '12-21']) {
+    const s = g.startFraction(start);
+    const d = g.parseDate('1987-05-16');
+    const depth = g.dateDepth(d, 2026, s);
+    assert.ok(Math.abs(g.depthTime(depth, 2026, s) - g.dateTime(d)) < 1e-9);
+  }
+});
