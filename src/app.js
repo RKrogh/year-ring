@@ -25,10 +25,7 @@
       showYears: true,
       showToday: true,
       showBirthRing: true,
-      people: [
-        { id: uid(), name: 'Me', date: '1987-05-16', color: PALETTE[0], visible: true },
-        { id: uid(), name: 'Son', date: '2021-05-09', color: PALETTE[1], visible: true },
-      ],
+      people: [],
       selectedId: null,
     };
   }
@@ -120,7 +117,17 @@
     });
   }
 
+  // The empty-state prompt and the diagram hint depend on whether anyone is listed.
+  function updateHints() {
+    const empty = state.people.length === 0;
+    $('empty').hidden = !empty;
+    $('hint').textContent = empty
+      ? 'Add a person to mark their birthday on the rings.'
+      : "Click a person's line to trace their life spiral.";
+  }
+
   function changed() {
+    updateHints();
     save();
     scheduleDraw();
   }
@@ -390,7 +397,7 @@
   });
 
   $('reset').addEventListener('click', () => {
-    if (!confirm('Reset to the example and forget your people?')) return;
+    if (!confirm('Clear all people and settings?')) return;
     state = defaults();
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
     syncControls();
@@ -401,5 +408,6 @@
 
   bindAll();
   renderPeopleList();
+  updateHints();
   scheduleDraw();
 })();
