@@ -15,6 +15,7 @@
       version: 1,
       title: '',
       referenceYear: today.year,
+      yearStart: '01-01',
       maxRings: 100,
       scale: 'log',
       strength: 0.15,
@@ -25,6 +26,8 @@
       showYears: true,
       showToday: true,
       showBirthRing: true,
+      showSolstices: false,
+      showEquinoxes: false,
       people: [],
       selectedId: null,
     };
@@ -52,6 +55,7 @@
     state.referenceYear = Math.round(Number(state.referenceYear)) || today.year;
     state.strength = clamp(Number(state.strength) || 0.15, 0.001, 10);
     state.wobble = clamp(Number(state.wobble) || 0, 0, 0.2);
+    state.yearStart = G.parseMonthDay(state.yearStart) ? state.yearStart : '01-01';
     state.selectedId = null;
     return state;
   }
@@ -158,10 +162,11 @@
   function describe(person) {
     const date = G.parseDate(person.date);
     if (!date) return { text: person.date ? 'Use YYYY-MM-DD' : 'Enter a date (YYYY-MM-DD)', warn: true };
-    const depth = G.dateDepth(date, state.referenceYear);
+    const start = G.startFraction(state.yearStart);
+    const depth = G.dateDepth(date, state.referenceYear, start);
     if (depth < 0) return { text: `After ${state.referenceYear}, not drawn`, warn: true };
     if (depth > state.maxRings) return { text: `Beyond ${state.maxRings} rings, not drawn`, warn: true };
-    const ring = G.ringIndex(date, state.referenceYear);
+    const ring = Math.floor(depth);
     let age = today.year - date.year;
     if (today.month < date.month || (today.month === date.month && today.day < date.day)) age--;
     const ageText = age >= 0 ? ` · ${age} ${age === 1 ? 'year' : 'years'} old` : '';
@@ -302,10 +307,48 @@
     });
   }
 
+  const TOGGLES = ['showMonths', 'showYears', 'showToday', 'showBirthRing', 'showSolstices', 'showEquinoxes'];
+
   function bindToggle(id) {
     const input = $(id);
-    input.checked = state[id] !== false;
+    input.checked = !!state[id];
     input.addEventListener('change', () => { state[id] = input.checked; changed(); });
+  }
+
+  // Year start: a preset list plus a custom MM-DD field shown only when needed.
+  function syncYearStart() {
+    const preset = $('yearStartPreset');
+    const known = [...preset.options].some((o) => o.value === state.yearStart);
+    preset.value = known ? state.yearStart : 'custom';
+    $('yearStart-custom-row').hidden = known;
+    $('yearStartCustom').value = state.yearStart;
+    $('yearStartCustom').classList.remove('invalid');
+  }
+
+  function setYearStart(value) {
+    state.yearStart = value;
+    refreshAllInfo();
+    changed();
+  }
+
+  function bindYearStart() {
+    syncYearStart();
+    $('yearStartPreset').addEventListener('change', (e) => {
+      const custom = e.target.value === 'custom';
+      $('yearStart-custom-row').hidden = !custom;
+      if (custom) $('yearStartCustom').focus();
+      else setYearStart(e.target.value);
+    });
+    $('yearStartCustom').addEventListener('input', (e) => {
+      const field = e.target;
+      if (e.inputType && e.inputType.startsWith('insert')) {
+        const digits = field.value.replace(/\D/g, '').slice(0, 4);
+        field.value = digits.length > 2 ? `${digits.slice(0, 2)}-${digits.slice(2)}` : digits;
+      }
+      const md = G.parseMonthDay(field.value);
+      field.classList.toggle('invalid', !md && field.value.length > 0);
+      if (md) setYearStart(`${String(md.month + 1).padStart(2, '0')}-${String(md.day).padStart(2, '0')}`);
+    });
   }
 
   function updateStrengthVisibility() {
@@ -323,7 +366,8 @@
       const n = parseInt(v, 10);
       return n >= 1 && n <= 9999 ? n : null;
     });
-    ['showMonths', 'showYears', 'showToday', 'showBirthRing'].forEach(bindToggle);
+    TOGGLES.forEach(bindToggle);
+    bindYearStart();
     updateStrengthVisibility();
   }
 
@@ -334,7 +378,8 @@
       const out = $(`${id}-out`);
       if (out) out.textContent = fmt[id](state[id]);
     });
-    ['showMonths', 'showYears', 'showToday', 'showBirthRing'].forEach((id) => ($(id).checked = state[id] !== false));
+    TOGGLES.forEach((id) => ($(id).checked = !!state[id]));
+    syncYearStart();
     updateStrengthVisibility();
     renderPeopleList();
   }

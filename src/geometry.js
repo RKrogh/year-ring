@@ -1,13 +1,14 @@
 // Pure geometry for the year-ring: maps calendar dates to polar coordinates.
 //
 // Model:
-//   - Angle: the year is a clock face. Month m (0 = January) owns the 30° slice
-//     from m o'clock to m+1 o'clock, measured clockwise from 12. The day picks a
-//     position inside that slice.
+//   - Angle: the year is a clock face. Month m (0 = January) owns a 30° slice,
+//     by default from m o'clock to m+1 o'clock, measured clockwise from 12. The
+//     day picks a position inside that slice. A configurable year start (e.g. the
+//     winter solstice) rotates the clock so that day sits at 12.
 //   - Depth: the reference year is ring 0 at the centre; each older year pushes
 //     one ring further out. Depth is continuous, so a date also has a radial
 //     position inside its ring: later in the year means closer to the centre.
-//     Time is therefore one continuous spiral, and Jan 1 is the ring boundary.
+//     Time is therefore one continuous spiral, and the year start is the ring boundary.
 //   - Radius: depth is mapped to a radius through a configurable scale
 //     (linear, logarithmic or equal-area), so recent years can get more room.
 (function (root) {
@@ -36,19 +37,60 @@
     return (month + (day - 0.5) / daysInMonth(year, month)) / 12;
   }
 
-  // Clock angle in radians, clockwise from 12 o'clock.
-  function dateAngle(date) {
-    return yearFraction(date) * TAU;
+  // Parses a year start given as 'MM-DD'. February 29 is rejected since most years lack it.
+  function parseMonthDay(text) {
+    const match = /^(\d{1,2})-(\d{1,2})$/.exec(String(text).trim());
+    if (!match) return null;
+    const month = Number(match[1]) - 1;
+    const day = Number(match[2]);
+    if (month < 0 || month > 11 || day < 1 || day > daysInMonth(2001, month)) return null;
+    return { month, day };
   }
 
-  // Continuous depth in rings. The reference year spans depth [0, 1),
-  // the year before [1, 2), and so on. Ring index = Math.floor(depth).
-  function dateDepth(date, referenceYear) {
-    return referenceYear + 1 - (date.year + yearFraction(date));
+  // Where the year starts, as a fraction of the calendar year (0 = January 1).
+  // The start is the beginning of that day, so a date on it sits just past 12 o'clock.
+  function startFraction(yearStart) {
+    const md = typeof yearStart === 'string' ? parseMonthDay(yearStart) : yearStart;
+    if (!md) return 0;
+    return (md.month + (md.day - 1) / daysInMonth(2001, md.month)) / 12;
   }
 
-  function ringIndex(date, referenceYear) {
-    return referenceYear - date.year;
+  const frac = (x) => x - Math.floor(x);
+
+  // Continuous time in years, e.g. 1987.37 for mid-May 1987.
+  function dateTime(date) {
+    return date.year + yearFraction(date);
+  }
+
+  // Clock angle in radians, clockwise from 12 o'clock, which is the year start `s`.
+  function timeAngle(t, s = 0) {
+    return frac(t - s) * TAU;
+  }
+
+  function dateAngle(date, s = 0) {
+    return timeAngle(dateTime(date), s);
+  }
+
+  // Time at which ring 0 begins. Each ring runs from one year start to the next,
+  // and ring 0 is the one whose middle falls in the reference year, so a ring
+  // is named after the calendar year holding most of it.
+  function ringZeroStart(referenceYear, s = 0) {
+    return referenceYear + s - (s >= 0.5 ? 1 : 0);
+  }
+
+  // Continuous depth in rings. Ring 0 spans depth [0, 1), the ring before
+  // [1, 2), and so on; ring index = Math.floor(depth), ring k is named referenceYear - k.
+  function dateDepth(date, referenceYear, s = 0) {
+    return ringZeroStart(referenceYear, s) + 1 - dateTime(date);
+  }
+
+  // Inverse of dateDepth: the time at a given depth.
+  function depthTime(depth, referenceYear, s = 0) {
+    return ringZeroStart(referenceYear, s) + 1 - depth;
+  }
+
+  function ringIndex(date, referenceYear, s = 0) {
+    return Math.floor(dateDepth(date, referenceYear, s));
   }
 
   // Normalised radius in [0, 1] for a depth in [0, maxRings].
@@ -81,7 +123,8 @@
   }
 
   const api = {
-    TAU, daysInMonth, parseDate, yearFraction, dateAngle, dateDepth, ringIndex, scaleDepth, toXY,
+    TAU, daysInMonth, parseDate, parseMonthDay, yearFraction, startFraction, dateTime, timeAngle,
+    dateAngle, ringZeroStart, dateDepth, depthTime, ringIndex, scaleDepth, toXY,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

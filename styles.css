@@ -108,6 +108,7 @@ button {
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 button.wide { width: 100%; }
+input.invalid { border-color: var(--danger); }
 button.danger { color: var(--danger); }
 
 .buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }

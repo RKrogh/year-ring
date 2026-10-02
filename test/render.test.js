@@ -37,3 +37,18 @@ test('a selected person gets a life spiral', () => {
   const selected = render({ ...base, selectedId: 'b' }, { today: { year: 2026, month: 9, day: 2 } });
   assert.ok(selected.length > plain.length);
 });
+
+test('season lines appear only when toggled', () => {
+  assert.ok(!render(base).includes('Winter solstice'));
+  const svg = render({ ...base, showSolstices: true, showEquinoxes: true });
+  for (const name of ['Summer solstice', 'Winter solstice', 'Spring equinox', 'Autumn equinox']) {
+    assert.ok(svg.includes(name), name);
+  }
+});
+
+test('year start changes placement but not ring numbers for mid-year dates', () => {
+  const solstice = render({ ...base, yearStart: '12-21' });
+  assert.notEqual(solstice, render(base));
+  assert.ok(solstice.includes('16 May 1987 · ring 39'));
+  assert.ok(!solstice.includes('NaN'));
+});

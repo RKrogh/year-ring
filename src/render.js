@@ -15,17 +15,17 @@
   const THEMES = {
     wood: {
       background: '#f3ece0', early: [233, 200, 148], late: [176, 122, 70], boundary: '#6e4524',
-      bark: '#4a3021', barkEdge: '#2e1d13', barkText: '#e9d3b0', spoke: 'rgba(60,35,15,0.28)', text: '#3b2a1c',
+      bark: '#4a3021', barkEdge: '#2e1d13', barkText: '#e9d3b0', season: '#8a3b00', spoke: 'rgba(60,35,15,0.28)', text: '#3b2a1c',
       muted: '#7b6450', halo: '#f3ece0', core: '#c99a62', fill: true,
     },
     night: {
       background: '#101318', early: [38, 46, 60], late: [24, 30, 41], boundary: '#5d6b82',
-      bark: '#0a0c10', barkEdge: '#3a4456', barkText: '#9fb0c8', spoke: 'rgba(170,190,220,0.22)', text: '#dde4ef',
+      bark: '#0a0c10', barkEdge: '#3a4456', barkText: '#9fb0c8', season: '#f2c14e', spoke: 'rgba(170,190,220,0.22)', text: '#dde4ef',
       muted: '#8d99ad', halo: '#101318', core: '#4a5870', fill: true,
     },
     paper: {
       background: '#ffffff', early: [255, 255, 255], late: [244, 244, 242], boundary: '#9a9a96',
-      bark: '#3d3d3a', barkEdge: '#1f1f1d', barkText: '#f2f2ee', spoke: 'rgba(0,0,0,0.12)', text: '#1f1f1d',
+      bark: '#3d3d3a', barkEdge: '#1f1f1d', barkText: '#f2f2ee', season: '#b8860b', spoke: 'rgba(0,0,0,0.12)', text: '#1f1f1d',
       muted: '#6f6f6a', halo: '#ffffff', core: '#d6d6d2', fill: true,
     },
   };
@@ -118,14 +118,53 @@
     return out.join('\n');
   }
 
+  const startOf = (state) => G.startFraction(state.yearStart || '01-01');
+
+  // Fixed approximations; the real dates drift by a day or so between years.
+  const SOLSTICES = [
+    { name: 'Summer solstice', month: 5, day: 21 },
+    { name: 'Winter solstice', month: 11, day: 21 },
+  ];
+  const EQUINOXES = [
+    { name: 'Spring equinox', month: 2, day: 20 },
+    { name: 'Autumn equinox', month: 8, day: 22 },
+  ];
+
+  // Lines from the centre to the rim on the solstices and/or equinoxes,
+  // labelled just inside the bark and running along the line.
+  function renderSeasons(state, theme, shape) {
+    const marks = [
+      ...(state.showSolstices ? SOLSTICES.map((m) => ({ ...m, strong: true })) : []),
+      ...(state.showEquinoxes ? EQUINOXES.map((m) => ({ ...m, strong: false })) : []),
+    ];
+    if (!marks.length) return '';
+    const start = startOf(state);
+    const out = [];
+    for (const mark of marks) {
+      const a = G.timeAngle(G.yearFraction({ year: 2001, month: mark.month, day: mark.day }), start);
+      const end = shape.point(state.maxRings, a);
+      const dash = mark.strong ? '' : ' stroke-dasharray="7 5"';
+      out.push(`<line x1="${C}" y1="${C}" x2="${f1(end.x)}" y2="${f1(end.y)}" stroke="${theme.halo}" stroke-width="4" stroke-opacity="0.3"/>`);
+      out.push(`<line x1="${C}" y1="${C}" x2="${f1(end.x)}" y2="${f1(end.y)}" stroke="${theme.season}" stroke-width="${mark.strong ? 1.8 : 1.3}"${dash}/>`);
+      // Text runs outward along the line; on the left half it is flipped to stay upright.
+      const p = G.toXY(a, shape.radius(state.maxRings, a) - 10, C, C);
+      const deg = (a * 180) / Math.PI;
+      const left = deg > 180;
+      const rot = left ? deg + 90 : deg - 90;
+      out.push(`<text x="${f1(p.x)}" y="${f1(p.y)}" transform="rotate(${f1(rot)} ${f1(p.x)} ${f1(p.y)})" text-anchor="${left ? 'start' : 'end'}" dy="-5" class="season" fill="${theme.season}" stroke="${theme.halo}"><title>${mark.name}: ${mark.day} ${MONTHS[mark.month]}</title>${mark.name}</text>`);
+    }
+    return `<g class="seasons">${out.join('')}</g>`;
+  }
+
   function renderMonths(state, theme, shape) {
     const out = [];
     const spokes = [];
+    const start = startOf(state);
     for (let m = 0; m < 12; m++) {
-      const a = (m / 12) * TAU;
+      const a = G.timeAngle(m / 12, start);
       const end = shape.point(state.maxRings, a);
       spokes.push(`M${C} ${C}L${f1(end.x)} ${f1(end.y)}`);
-      const mid = ((m + 0.5) / 12) * TAU;
+      const mid = G.timeAngle((m + 0.5) / 12, start);
       const p = G.toXY(mid, shape.radius(state.maxRings, mid) + BARK / 2, C, C);
       // Rotate along the rim, flipping the lower half so it stays readable.
       let rot = (mid * 180) / Math.PI;
@@ -182,7 +221,7 @@
 
   // The life spiral is drawn one year at a time so its stroke can follow the
   // ring width; otherwise decades of turns in thin outer rings become a solid disc.
-  function lifeSpiral(shape, fromDepth, toDepth, referenceYear, color) {
+  function lifeSpiral(shape, fromDepth, toDepth, referenceYear, start, color) {
     const out = [];
     for (let ring = Math.floor(fromDepth); ring >= Math.floor(toDepth) && ring >= 0; ring--) {
       const start = Math.min(fromDepth, ring + 1);
@@ -192,8 +231,7 @@
       let d = '';
       for (let i = 0; i <= steps; i++) {
         const depth = start + (end - start) * (i / steps);
-        const t = referenceYear + 1 - depth;
-        const p = shape.point(depth, (t - Math.floor(t)) * TAU);
+        const p = shape.point(depth, G.timeAngle(G.depthTime(depth, referenceYear, start), start));
         d += (i ? 'L' : 'M') + f1(p.x) + ' ' + f1(p.y);
       }
       const width = Math.min(2.4, Math.max(0.4, shape.ringWidth(ring) * 0.22));
@@ -203,14 +241,15 @@
   }
 
   function placedPeople(state) {
+    const start = startOf(state);
     const result = [];
     for (const person of state.people || []) {
       if (person.visible === false) continue;
       const date = G.parseDate(person.date);
       if (!date) continue;
-      const depth = G.dateDepth(date, state.referenceYear);
+      const depth = G.dateDepth(date, state.referenceYear, start);
       if (depth < 0 || depth > state.maxRings) continue;
-      result.push({ person, date, depth, angle: G.dateAngle(date), ring: G.ringIndex(date, state.referenceYear) });
+      result.push({ person, date, depth, angle: G.dateAngle(date, start), ring: Math.floor(depth) });
     }
     return result;
   }
@@ -243,9 +282,9 @@
         back.push(`<g ${group}><path d="${shape.closedPath(it.ring + 1)}" fill="none" stroke="${color}" stroke-width="1.6" stroke-opacity="0.75" stroke-dasharray="6 4"/></g>`);
       }
       if (selected && today) {
-        const toDepth = Math.max(0, G.dateDepth(today, state.referenceYear));
+        const toDepth = Math.max(0, G.dateDepth(today, state.referenceYear, startOf(state)));
         if (toDepth < it.depth) {
-          back.push(lifeSpiral(shape, it.depth, toDepth, state.referenceYear, color));
+          back.push(lifeSpiral(shape, it.depth, toDepth, state.referenceYear, startOf(state), color));
         }
       }
       const tip = `${it.person.name}: ${formatDate(it.date)}, ring ${it.ring}`;
@@ -288,9 +327,10 @@
 
   function renderToday(state, theme, shape, today) {
     if (!today) return '';
-    const depth = G.dateDepth(today, state.referenceYear);
+    const start = startOf(state);
+    const depth = G.dateDepth(today, state.referenceYear, start);
     if (depth < 0 || depth > state.maxRings) return '';
-    const p = shape.point(depth, G.dateAngle(today));
+    const p = shape.point(depth, G.dateAngle(today, start));
     return `<g class="today"><title>Today: ${esc(formatDate(today))}</title>` +
       `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="5" fill="${theme.halo}" stroke="${theme.text}" stroke-width="2"/>` +
       `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="1.8" fill="${theme.text}"/></g>`;
@@ -313,6 +353,7 @@
     const body = [renderWood(state, theme, shape)];
     if (state.showMonths !== false) body.push(renderMonths(state, theme, shape));
     if (state.showYears !== false) body.push(renderYearLabels(state, theme, shape));
+    body.push(renderSeasons(state, theme, shape));
     body.push(renderPeople(state, theme, shape, today, bounds));
     if (state.showToday !== false) body.push(renderToday(state, theme, shape, today));
 
@@ -338,6 +379,7 @@
         .year{paint-order:stroke;stroke-width:3px;stroke-opacity:.75;font-variant-numeric:tabular-nums}
         .name{font-size:17px;font-weight:bold;paint-order:stroke;stroke-width:4px}
         .date{font-size:13px;paint-order:stroke;stroke-width:4px}
+        .season{font-size:11px;font-weight:bold;letter-spacing:.14em;text-transform:uppercase;paint-order:stroke;stroke-width:3px;stroke-opacity:.45}
         .title{font-size:30px;letter-spacing:.04em}
         .person{cursor:pointer}
       </style>`,
